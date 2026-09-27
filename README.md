@@ -1,5 +1,4 @@
 # Nano-R1
-<<<<<<< HEAD
 # Fine-Tuning Qwen2.5-3B-Instruct with GRPO for Mathematical Reasoning
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)
