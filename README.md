@@ -1,4 +1,5 @@
 # Nano-R1
+<<<<<<< HEAD
 # Fine-Tuning Qwen2.5-3B-Instruct with GRPO for Mathematical Reasoning
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)
@@ -100,3 +101,107 @@ This project is licensed under the **Apache License 2.0** - see the [LICENSE](LI
 
 - Performance improvements
 
+=======
+
+Qwen2.5-3B-Instruct, fine-tuned with **GRPO** on **GSM8K** for math reasoning — now wrapped
+in a full-stack app instead of a Colab notebook. Every answer comes with the reasoning
+trace the model produced, and users can rate it right/wrong, which is stored as replay
+data for a future GRPO reward pass.
+
+## Architecture
+
+```
+apps/
+├── web/         Next.js (TypeScript, Tailwind) — chat UI, auth, history
+├── api/         FastAPI + PostgreSQL — accounts, conversations, feedback, orchestration
+└── inference/   FastAPI + vLLM/Unsloth — loads the base model + GRPO LoRA adapter, generates
+```
+
+`web` never talks to `inference` directly — everything goes through `api`, which is what
+writes to Postgres and enforces auth. `inference` is stateless and only knows about the
+model.
+
+## Quick start (Docker Compose)
+
+Each app needs a `.env` file — copy the examples first:
+
+```bash
+cp apps/web/.env.example apps/web/.env
+cp apps/api/.env.example apps/api/.env
+cp apps/inference/.env.example apps/inference/.env
+```
+
+Then:
+
+```bash
+docker compose up --build
+```
+
+- Web: http://localhost:3000
+- API: http://localhost:8000 (docs at `/docs`)
+- Inference: http://localhost:8001
+
+By default `inference` runs with `USE_STUB_MODEL=true`, so the whole stack works without a
+GPU — it returns a canned reasoning/answer pair instead of running the real model. That's
+enough to build and test `web` and `api` end to end.
+
+## Running the real model
+
+The stub is only for local dev without a GPU. To serve the actual fine-tuned model:
+
+1. Train (or reuse your existing) LoRA adapter:
+   ```bash
+   cd apps/inference
+   pip install -r requirements.txt
+   python -m train.train_grpo --max-steps 150 --output-dir grpo_saved_lora
+   ```
+2. Point the inference service at it and turn off the stub, in `apps/inference/.env`:
+   ```
+   LORA_ADAPTER_PATH=grpo_saved_lora
+   USE_STUB_MODEL=false
+   ```
+3. Run `apps/inference` on a machine with a GPU (≥16GB VRAM) — either directly
+   (`uvicorn app.main:app`) or via its Dockerfile with `--build-arg INSTALL_GPU_DEPS=true`
+   on a CUDA base image.
+
+## Local development (without Docker)
+
+**inference** (needs a GPU for real generation, or leave `USE_STUB_MODEL=true`):
+```bash
+cd apps/inference
+pip install fastapi "uvicorn[standard]" pydantic
+uvicorn app.main:app --reload --port 8001
+```
+
+**api** (needs Postgres running — `docker compose up postgres` is the easy way):
+```bash
+cd apps/api
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
+```
+
+**web**:
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+## Data model
+
+- `users` — accounts (email + hashed password)
+- `conversations` — one per problem-solving session
+- `messages` — each question + the model's `reasoning` and `answer`
+- `feedback` — a user's rating (+1 / -1) on one message, the signal that can seed a future
+  reward pass on top of the existing GRPO reward functions
+
+## What's unchanged from the original script
+
+`apps/inference/train/train_grpo.py` is the original `nano_r1_model.py` logic, reorganized
+into a callable script — same system prompt, same reward functions
+(`correctness_reward_func`, `int_reward_func`, `strict_format_reward_func`,
+`soft_format_reward_func`, `xmlcount_reward_func`), same GRPO config. A LoRA adapter you've
+already trained with the old script drops straight into `LORA_ADAPTER_PATH` and works with
+`apps/inference` unchanged.
+>>>>>>> 9720a06 (Add my files and changes)
