@@ -47,15 +47,15 @@ Recommended: CUDA 12.x and cuDNN 8.6+
 Install dependencies:
 
 ```bash
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
+git clone https://github.com/Akshint0407/Nano-R1.git
+cd Nano-R1
 pip install -r requirements.txt
 ```
 
 Run the notebook:
 
 ```bash
-jupyter notebook nano_r1_train_v2.ipynb
+jupyter notebook nano_r1_model.ipynb
 ```
 Key Configuration (in notebook):
 ```python```
