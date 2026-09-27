@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nano_r1
+      POSTGRES_PASSWORD: nano_r1
+      POSTGRES_DB: nano_r1
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nano_r1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  inference:
+    build:
+      context: ./apps/inference
+      args:
+        INSTALL_GPU_DEPS: "false" # set to "true" and run on a GPU host for real inference
+    env_file: ./apps/inference/.env
+    environment:
+      USE_STUB_MODEL: "false" # canned "42" answers — leave true only for quick UI smoke tests
+      USE_LLAMA_CPP: "true"   # CPU path (llama.cpp), no GPU needed — what runs on a laptop
+      # LLAMA_CPP_REPO_ID: Qwen/Qwen2.5-1.5B-Instruct-GGUF   # default; bump to 3B if your machine can take it
+      # LLAMA_CPP_FILENAME: qwen2.5-1.5b-instruct-q4_k_m.gguf
+    ports:
+      - "8001:8000" # Maps Host:8001 to Container:8000
+
+  api:
+    build: ./apps/api
+    env_file: ./apps/api/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://nano_r1:nano_r1@postgres:5432/nano_r1
+      INFERENCE_SERVICE_URL: http://inference:8000 # Points directly to internal container port 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inference:
+        condition: service_started
+    ports:
+      - "8000:8000"
+
+  web:
+    build: ./apps/web
+    env_file: ./apps/web/.env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      INTERNAL_API_URL: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

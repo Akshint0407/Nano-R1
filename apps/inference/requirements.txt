@@ -1,0 +1,18 @@
+# Serving API
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+
+# CPU inference path (llama.cpp) — lightweight, no CUDA needed. Installed
+# whenever USE_LLAMA_CPP is used; safe to leave installed on a GPU box too.
+llama-cpp-python==0.3.4
+huggingface_hub>=0.24.0
+
+# Model stack (only needed when USE_STUB_MODEL=false, i.e. on a GPU box)
+torch
+transformers
+accelerate
+unsloth
+vllm
+trl
+datasets
